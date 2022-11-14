@@ -19,6 +19,9 @@ package client
 import (
 	context "context"
 	fmt "fmt"
+	"github.com/kcp-dev/client-go/kubernetes"
+	"knative.dev/pkg/injection"
+	"knative.dev/pkg/logging"
 
 	certificatesv1beta1 "k8s.io/api/certificates/v1beta1"
 	corev1 "k8s.io/api/core/v1"
@@ -30,14 +33,40 @@ import (
 	"k8s.io/apimachinery/pkg/fields"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
-	restclient "k8s.io/client-go/rest"
+	"k8s.io/client-go/rest"
 )
+
+func init() {
+	injection.Default.RegisterClient(withClusterClientFromConfig)
+}
+
+// ClusterKey is used as the key for associating information with a context.Context.
+type ClusterKey struct{}
+
+func withClusterClientFromConfig(ctx context.Context, cfg *rest.Config) context.Context {
+	return context.WithValue(ctx, ClusterKey{}, kubernetes.NewForConfigOrDie(cfg))
+}
+
+// GetCluster extracts the kubernetes.Interface client from the context.
+func GetCluster(ctx context.Context) kubernetes.ClusterInterface {
+	untyped := ctx.Value(ClusterKey{})
+	if untyped == nil {
+		if injection.GetConfig(ctx) == nil {
+			logging.FromContext(ctx).Panic(
+				"Unable to fetch k8s.io/client-go/kubernetes.Interface from context. This context is not the application context (which is typically given to constructors via sharedmain).")
+		} else {
+			logging.FromContext(ctx).Panic(
+				"Unable to fetch k8s.io/client-go/kubernetes.Interface from context.")
+		}
+	}
+	return untyped.(kubernetes.ClusterInterface)
+}
 
 func (*wrapCoreV1NamespaceImpl) Finalize(context.Context, *corev1.Namespace, metav1.UpdateOptions) (*corev1.Namespace, error) {
 	panic("NYI")
 }
 
-func (*wrapCoreV1ServiceImpl) ProxyGet(string, string, string, string, map[string]string) restclient.ResponseWrapper {
+func (*wrapCoreV1ServiceImpl) ProxyGet(string, string, string, string, map[string]string) rest.ResponseWrapper {
 	panic("NYI")
 }
 
@@ -139,11 +168,11 @@ func (c *wrapPolicyV1EvictionImpl) Evict(ctx context.Context, eviction *policyv1
 	panic("NYI")
 }
 
-func (*wrapCoreV1PodImpl) GetLogs(string, *corev1.PodLogOptions) *restclient.Request {
+func (*wrapCoreV1PodImpl) GetLogs(string, *corev1.PodLogOptions) *rest.Request {
 	panic("NYI")
 }
 
-func (*wrapCoreV1PodImpl) ProxyGet(string, string, string, string, map[string]string) restclient.ResponseWrapper {
+func (*wrapCoreV1PodImpl) ProxyGet(string, string, string, string, map[string]string) rest.ResponseWrapper {
 	panic("NYI")
 }
 

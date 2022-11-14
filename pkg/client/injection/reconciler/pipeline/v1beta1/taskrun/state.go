@@ -20,10 +20,11 @@ package taskrun
 
 import (
 	fmt "fmt"
+	"github.com/kcp-dev/logicalcluster/v2"
 
 	v1beta1 "github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	types "k8s.io/apimachinery/pkg/types"
-	cache "k8s.io/client-go/tools/cache"
+	cache "github.com/kcp-dev/apimachinery/pkg/cache"
 	reconciler "knative.dev/pkg/reconciler"
 )
 
@@ -31,6 +32,8 @@ import (
 type state struct {
 	// key is the original reconciliation key from the queue.
 	key string
+	// cluster is the cluster split from the reconciliation key.
+	cluster logicalcluster.Name
 	// namespace is the namespace split from the reconciliation key.
 	namespace string
 	// name is the name split from the reconciliation key.
@@ -47,7 +50,7 @@ type state struct {
 
 func newState(key string, r *reconcilerImpl) (*state, error) {
 	// Convert the namespace/name string into a distinct namespace and name.
-	namespace, name, err := cache.SplitMetaNamespaceKey(key)
+	cluster, namespace, name, err := cache.SplitMetaClusterNamespaceKey(key)
 	if err != nil {
 		return nil, fmt.Errorf("invalid resource key: %s", key)
 	}
@@ -61,6 +64,7 @@ func newState(key string, r *reconcilerImpl) (*state, error) {
 
 	return &state{
 		key:        key,
+		cluster: cluster,
 		namespace:  namespace,
 		name:       name,
 		reconciler: r.reconciler,

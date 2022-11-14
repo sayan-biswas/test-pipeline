@@ -18,23 +18,12 @@ package pipelinerun
 
 import (
 	"context"
-
 	"github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
-	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	pipelineclient "github.com/tektoncd/pipeline/pkg/client/injection/client"
-	runinformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1alpha1/run"
 	pipelineruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun"
-	taskruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/taskrun"
 	pipelinerunreconciler "github.com/tektoncd/pipeline/pkg/client/injection/reconciler/pipeline/v1beta1/pipelinerun"
-	resolutionclient "github.com/tektoncd/pipeline/pkg/client/resolution/injection/client"
-	resolutioninformer "github.com/tektoncd/pipeline/pkg/client/resolution/injection/informers/resolution/v1alpha1/resolutionrequest"
-	resourceinformer "github.com/tektoncd/pipeline/pkg/client/resource/injection/informers/resource/v1alpha1/pipelineresource"
 	"github.com/tektoncd/pipeline/pkg/pipelinerunmetrics"
-	cloudeventclient "github.com/tektoncd/pipeline/pkg/reconciler/events/cloudevent"
-	"github.com/tektoncd/pipeline/pkg/reconciler/volumeclaim"
-	resolution "github.com/tektoncd/pipeline/pkg/resolution/resource"
-	"k8s.io/client-go/tools/cache"
 	"k8s.io/utils/clock"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
@@ -46,29 +35,29 @@ import (
 func NewController(opts *pipeline.Options, clock clock.PassiveClock) func(context.Context, configmap.Watcher) *controller.Impl {
 	return func(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 		logger := logging.FromContext(ctx)
-		kubeclientset := kubeclient.Get(ctx)
-		pipelineclientset := pipelineclient.Get(ctx)
-		taskRunInformer := taskruninformer.Get(ctx)
-		runInformer := runinformer.Get(ctx)
-		pipelineRunInformer := pipelineruninformer.Get(ctx)
-		resourceInformer := resourceinformer.Get(ctx)
-		resolutionInformer := resolutioninformer.Get(ctx)
+		kubeclientset := kubeclient.GetCluster(ctx)
+		pipelineclientset := pipelineclient.GetCluster(ctx)
+		//taskRunInformer := taskruninformer.GetCluster(ctx)
+		//runInformer := runinformer.GetCluster(ctx)
+		pipelineRunInformer := pipelineruninformer.GetCluster(ctx)
+		//resourceInformer := resourceinformer.GetCluster(ctx)
+		//resolutionInformer := resolutioninformer.GetCluster(ctx)
 		configStore := config.NewStore(logger.Named("config-store"), pipelinerunmetrics.MetricsOnStore(logger))
 		configStore.WatchConfigs(cmw)
 
 		c := &Reconciler{
-			KubeClientSet:       kubeclientset,
-			PipelineClientSet:   pipelineclientset,
-			Images:              opts.Images,
-			Clock:               clock,
-			pipelineRunLister:   pipelineRunInformer.Lister(),
-			taskRunLister:       taskRunInformer.Lister(),
-			runLister:           runInformer.Lister(),
-			resourceLister:      resourceInformer.Lister(),
-			cloudEventClient:    cloudeventclient.Get(ctx),
-			metrics:             pipelinerunmetrics.Get(ctx),
-			pvcHandler:          volumeclaim.NewPVCHandler(kubeclientset, logger),
-			resolutionRequester: resolution.NewCRDRequester(resolutionclient.Get(ctx), resolutionInformer.Lister()),
+			KubeClientSet:     kubeclientset,
+			PipelineClientSet: pipelineclientset,
+			Images:            opts.Images,
+			Clock:             clock,
+			pipelineRunLister: pipelineRunInformer.Lister(),
+			//taskRunLister:     taskRunInformer.Lister(),
+			//runLister:         runInformer.Lister(),
+			//resourceLister:    resourceInformer.Lister(),
+			//cloudEventClient:  cloudeventclient.Get(ctx),
+			//metrics:           pipelinerunmetrics.Get(ctx),
+			//pvcHandler:          volumeclaim.NewPVCHandler(kubeclientset, logger),
+			//resolutionRequester: resolution.NewCRDRequester(resolutionclient.GetCluster(ctx), resolutionInformer.Lister()),
 		}
 		impl := pipelinerunreconciler.NewImpl(ctx, c, func(impl *controller.Impl) controller.Options {
 			return controller.Options{
@@ -79,18 +68,18 @@ func NewController(opts *pipeline.Options, clock clock.PassiveClock) func(contex
 
 		pipelineRunInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
 
-		taskRunInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-			FilterFunc: controller.FilterController(&v1beta1.PipelineRun{}),
-			Handler:    controller.HandleAll(impl.EnqueueControllerOf),
-		})
-		runInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-			FilterFunc: controller.FilterController(&v1beta1.PipelineRun{}),
-			Handler:    controller.HandleAll(impl.EnqueueControllerOf),
-		})
-		resolutionInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
-			FilterFunc: controller.FilterController(&v1beta1.PipelineRun{}),
-			Handler:    controller.HandleAll(impl.EnqueueControllerOf),
-		})
+		//taskRunInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+		//	FilterFunc: controller.FilterController(&v1beta1.PipelineRun{}),
+		//	Handler:    controller.HandleAll(impl.EnqueueControllerOf),
+		//})
+		//runInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+		//	FilterFunc: controller.FilterController(&v1beta1.PipelineRun{}),
+		//	Handler:    controller.HandleAll(impl.EnqueueControllerOf),
+		//})
+		//resolutionInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+		//	FilterFunc: controller.FilterController(&v1beta1.PipelineRun{}),
+		//	Handler:    controller.HandleAll(impl.EnqueueControllerOf),
+		//})
 
 		return impl
 	}

@@ -25,9 +25,6 @@ import (
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
 	"github.com/tektoncd/pipeline/pkg/reconciler/pipelinerun"
-	"github.com/tektoncd/pipeline/pkg/reconciler/resolutionrequest"
-	"github.com/tektoncd/pipeline/pkg/reconciler/run"
-	"github.com/tektoncd/pipeline/pkg/reconciler/taskrun"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/rest"
 	"k8s.io/utils/clock"
@@ -74,6 +71,7 @@ func main() {
 	if cfg.Burst == 0 {
 		cfg.Burst = rest.DefaultBurst
 	}
+
 	// FIXME(vdemeester): this is here to not break current behavior
 	// multiply by 2, no of controllers being created
 	cfg.QPS = 2 * cfg.QPS
@@ -104,10 +102,10 @@ func main() {
 
 	ctx = filteredinformerfactory.WithSelectors(ctx, v1beta1.ManagedByLabelKey)
 	sharedmain.MainWithConfig(ctx, ControllerLogKey, cfg,
-		taskrun.NewController(opts, clock.RealClock{}),
+		//taskrun.NewController(opts, clock.RealClock{}),
 		pipelinerun.NewController(opts, clock.RealClock{}),
-		run.NewController(),
-		resolutionrequest.NewController(clock.RealClock{}),
+		//run.NewController(),
+		//resolutionrequest.NewController(clock.RealClock{}),
 	)
 }
 

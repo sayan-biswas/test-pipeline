@@ -18,7 +18,6 @@ package injection
 
 import (
 	"context"
-
 	"k8s.io/client-go/rest"
 )
 
@@ -81,3 +80,22 @@ func (i *impl) GetDynamicClients() []DynamicClientInjector {
 	// Copy the slice before returning.
 	return append(i.dynamicClients[:0:0], i.dynamicClients...)
 }
+
+// ClusterClientInjector holds the type of callback that attaches a particular
+// client type to a context.
+//type ClusterClientInjector func(context.Context, *rest.Config) context.Context
+//
+//func (i *impl) RegisterClusterClient(cci ClusterClientInjector) {
+//	i.m.Lock()
+//	defer i.m.Unlock()
+//
+//	i.clusterClients = append(i.clusterClients, cci)
+//}
+//
+//func (i *impl) GetClusterClients() []ClusterClientInjector {
+//	i.m.RLock()
+//	defer i.m.RUnlock()
+//
+//	// Copy the slice before returning.
+//	return append(i.clusterClients[:0:0], i.clusterClients...)
+//}

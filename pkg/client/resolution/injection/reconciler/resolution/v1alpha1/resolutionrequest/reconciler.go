@@ -22,10 +22,11 @@ import (
 	context "context"
 	json "encoding/json"
 	fmt "fmt"
+	"github.com/kcp-dev/logicalcluster/v2"
 
 	v1alpha1 "github.com/tektoncd/pipeline/pkg/apis/resolution/v1alpha1"
-	versioned "github.com/tektoncd/pipeline/pkg/client/resolution/clientset/versioned"
-	resolutionv1alpha1 "github.com/tektoncd/pipeline/pkg/client/resolution/listers/resolution/v1alpha1"
+	versioned "github.com/tektoncd/pipeline/pkg/client/resolution/cluster/clientset"
+	resolutionv1alpha1 "github.com/tektoncd/pipeline/pkg/client/resolution/cluster/listers/resolution/v1alpha1"
 	zap "go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	equality "k8s.io/apimachinery/pkg/api/equality"
@@ -81,10 +82,10 @@ type reconcilerImpl struct {
 	reconciler.LeaderAwareFuncs
 
 	// Client is used to write back status updates.
-	Client versioned.Interface
+	Client versioned.ClusterInterface
 
 	// Listers index properties about resources.
-	Lister resolutionv1alpha1.ResolutionRequestLister
+	Lister resolutionv1alpha1.ResolutionRequestClusterLister
 
 	// Recorder is an event recorder for recording Event resources to the
 	// Kubernetes API.
@@ -111,7 +112,7 @@ var _ controller.Reconciler = (*reconcilerImpl)(nil)
 // Check that our generated Reconciler is always LeaderAware.
 var _ reconciler.LeaderAware = (*reconcilerImpl)(nil)
 
-func NewReconciler(ctx context.Context, logger *zap.SugaredLogger, client versioned.Interface, lister resolutionv1alpha1.ResolutionRequestLister, recorder record.EventRecorder, r Interface, options ...controller.Options) controller.Reconciler {
+func NewReconciler(ctx context.Context, logger *zap.SugaredLogger, client versioned.ClusterInterface, lister resolutionv1alpha1.ResolutionRequestClusterLister, recorder record.EventRecorder, r Interface, options ...controller.Options) controller.Reconciler {
 	// Check the options function input. It should be 0 or 1.
 	if len(options) > 1 {
 		logger.Fatal("Up to one options struct is supported, found: ", len(options))
@@ -195,7 +196,7 @@ func (r *reconcilerImpl) Reconcile(ctx context.Context, key string) error {
 
 	// Get the resource with this namespace/name.
 
-	getter := r.Lister.ResolutionRequests(s.namespace)
+	getter := r.Lister.Cluster(s.cluster).ResolutionRequests(s.namespace)
 
 	original, err := getter.Get(s.name)
 
@@ -226,7 +227,7 @@ func (r *reconcilerImpl) Reconcile(ctx context.Context, key string) error {
 	case reconciler.DoReconcileKind:
 		// Set and update the finalizer on resource if r.reconciler
 		// implements Finalizer.
-		if resource, err = r.setFinalizerIfFinalizer(ctx, resource); err != nil {
+		if resource, err = r.setFinalizerIfFinalizer(ctx, s.cluster, resource); err != nil {
 			return fmt.Errorf("failed to set finalizers: %w", err)
 		}
 
@@ -247,7 +248,7 @@ func (r *reconcilerImpl) Reconcile(ctx context.Context, key string) error {
 		// and reconciled cleanly (nil or normal event), remove the finalizer.
 		reconcileEvent = do(ctx, resource)
 
-		if resource, err = r.clearFinalizer(ctx, resource, reconcileEvent); err != nil {
+		if resource, err = r.clearFinalizer(ctx, s.cluster, resource, reconcileEvent); err != nil {
 			return fmt.Errorf("failed to clear finalizers: %w", err)
 		}
 
@@ -272,7 +273,7 @@ func (r *reconcilerImpl) Reconcile(ctx context.Context, key string) error {
 		// the elected leader is expected to write modifications.
 		logger.Warn("Saw status changes when we aren't the leader!")
 	default:
-		if err = r.updateStatus(ctx, original, resource); err != nil {
+		if err = r.updateStatus(ctx, s.cluster, original, resource); err != nil {
 			logger.Warnw("Failed to update resource status", zap.Error(err))
 			r.Recorder.Eventf(resource, v1.EventTypeWarning, "UpdateFailed",
 				"Failed to update status for %q: %v", resource.Name, err)
@@ -308,13 +309,13 @@ func (r *reconcilerImpl) Reconcile(ctx context.Context, key string) error {
 	return nil
 }
 
-func (r *reconcilerImpl) updateStatus(ctx context.Context, existing *v1alpha1.ResolutionRequest, desired *v1alpha1.ResolutionRequest) error {
+func (r *reconcilerImpl) updateStatus(ctx context.Context, cluster logicalcluster.Name, existing *v1alpha1.ResolutionRequest, desired *v1alpha1.ResolutionRequest) error {
 	existing = existing.DeepCopy()
 	return reconciler.RetryUpdateConflicts(func(attempts int) (err error) {
 		// The first iteration tries to use the injectionInformer's state, subsequent attempts fetch the latest state via API.
 		if attempts > 0 {
 
-			getter := r.Client.ResolutionV1alpha1().ResolutionRequests(desired.Namespace)
+			getter := r.Client.Cluster(cluster).ResolutionV1alpha1().ResolutionRequests(desired.Namespace)
 
 			existing, err = getter.Get(ctx, desired.Name, metav1.GetOptions{})
 			if err != nil {
@@ -333,7 +334,7 @@ func (r *reconcilerImpl) updateStatus(ctx context.Context, existing *v1alpha1.Re
 
 		existing.Status = desired.Status
 
-		updater := r.Client.ResolutionV1alpha1().ResolutionRequests(existing.Namespace)
+		updater := r.Client.Cluster(cluster).ResolutionV1alpha1().ResolutionRequests(existing.Namespace)
 
 		_, err = updater.UpdateStatus(ctx, existing, metav1.UpdateOptions{})
 		return err
@@ -343,9 +344,9 @@ func (r *reconcilerImpl) updateStatus(ctx context.Context, existing *v1alpha1.Re
 // updateFinalizersFiltered will update the Finalizers of the resource.
 // TODO: this method could be generic and sync all finalizers. For now it only
 // updates defaultFinalizerName or its override.
-func (r *reconcilerImpl) updateFinalizersFiltered(ctx context.Context, resource *v1alpha1.ResolutionRequest) (*v1alpha1.ResolutionRequest, error) {
+func (r *reconcilerImpl) updateFinalizersFiltered(ctx context.Context, cluster logicalcluster.Name, resource *v1alpha1.ResolutionRequest) (*v1alpha1.ResolutionRequest, error) {
 
-	getter := r.Lister.ResolutionRequests(resource.Namespace)
+	getter := r.Lister.Cluster(cluster).ResolutionRequests(resource.Namespace)
 
 	actual, err := getter.Get(resource.Name)
 	if err != nil {
@@ -390,7 +391,7 @@ func (r *reconcilerImpl) updateFinalizersFiltered(ctx context.Context, resource 
 		return resource, err
 	}
 
-	patcher := r.Client.ResolutionV1alpha1().ResolutionRequests(resource.Namespace)
+	patcher := r.Client.Cluster(cluster).ResolutionV1alpha1().ResolutionRequests(resource.Namespace)
 
 	resourceName := resource.Name
 	updated, err := patcher.Patch(ctx, resourceName, types.MergePatchType, patch, metav1.PatchOptions{})
@@ -404,7 +405,7 @@ func (r *reconcilerImpl) updateFinalizersFiltered(ctx context.Context, resource 
 	return updated, err
 }
 
-func (r *reconcilerImpl) setFinalizerIfFinalizer(ctx context.Context, resource *v1alpha1.ResolutionRequest) (*v1alpha1.ResolutionRequest, error) {
+func (r *reconcilerImpl) setFinalizerIfFinalizer(ctx context.Context, cluster logicalcluster.Name, resource *v1alpha1.ResolutionRequest) (*v1alpha1.ResolutionRequest, error) {
 	if _, ok := r.reconciler.(Finalizer); !ok {
 		return resource, nil
 	}
@@ -419,10 +420,10 @@ func (r *reconcilerImpl) setFinalizerIfFinalizer(ctx context.Context, resource *
 	resource.Finalizers = finalizers.List()
 
 	// Synchronize the finalizers filtered by r.finalizerName.
-	return r.updateFinalizersFiltered(ctx, resource)
+	return r.updateFinalizersFiltered(ctx, cluster, resource)
 }
 
-func (r *reconcilerImpl) clearFinalizer(ctx context.Context, resource *v1alpha1.ResolutionRequest, reconcileEvent reconciler.Event) (*v1alpha1.ResolutionRequest, error) {
+func (r *reconcilerImpl) clearFinalizer(ctx context.Context, cluster logicalcluster.Name, resource *v1alpha1.ResolutionRequest, reconcileEvent reconciler.Event) (*v1alpha1.ResolutionRequest, error) {
 	if _, ok := r.reconciler.(Finalizer); !ok {
 		return resource, nil
 	}
@@ -446,5 +447,5 @@ func (r *reconcilerImpl) clearFinalizer(ctx context.Context, resource *v1alpha1.
 	resource.Finalizers = finalizers.List()
 
 	// Synchronize the finalizers filtered by r.finalizerName.
-	return r.updateFinalizersFiltered(ctx, resource)
+	return r.updateFinalizersFiltered(ctx, cluster, resource)
 }

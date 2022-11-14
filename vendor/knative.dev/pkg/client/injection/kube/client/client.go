@@ -13333,6 +13333,10 @@ func (w *wrapStorageV1) RESTClient() rest.Interface {
 	panic("RESTClient called on dynamic client!")
 }
 
+func (w *wrapStorageV1) CSIStorageCapacities(namespace string) typedstoragev1.CSIStorageCapacityInterface {
+	panic("NYI")
+}
+
 func (w *wrapStorageV1) CSIDrivers() typedstoragev1.CSIDriverInterface {
 	return &wrapStorageV1CSIDriverImpl{
 		dyn: w.dyn.Resource(schema.GroupVersionResource{

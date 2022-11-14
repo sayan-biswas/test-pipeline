@@ -101,6 +101,29 @@ type DynamicInterface interface {
 	SetupDynamic(context.Context) context.Context
 }
 
+// ClusterInterface is the interface for interacting with cluster client-based injection
+// implementations, such as Cluster below.
+//type ClusterInterface interface {
+//	// RegisterClusterClient registers a new injector callback for associating
+//	// a new cluster client-based client with a context.
+//	RegisterClusterClient(ClusterClientInjector)
+//
+//	// GetClusterClients fetches all  the registered cluster client-based client injectors.
+//	GetClusterClients() []ClusterClientInjector
+//
+//	// RegisterClusterInformer registers a new injector callback for associating
+//	// a new cluster client-based informer with a context.
+//	RegisterClusterInformer(DynamicInformerInjector)
+//
+//	// GetClusterInformers fetches all the registered cluster client-based informer injectors.
+//	GetClusterInformers() []DynamicInformerInjector
+//
+//	// SetupCluster runs all the injectors against a context, starting with
+//	// the clients and the given stream.  A context infused with the various elements
+//	// is returned.
+//	SetupCluster(context.Context, logicalcluster.Name) context.Context
+//}
+
 type ControllerConstructor func(context.Context, configmap.Watcher) *controller.Impl
 
 // NamedControllerConstructor is a ControllerConstructor with an associated name.
@@ -124,6 +147,11 @@ var (
 	// of things based on the prototype dynamicclient-based reconciler framework.
 	Dynamic DynamicInterface = &impl{}
 
+	// Cluster is the injection interface with which informers should register
+	// to make themselves available to the controller process when reconcilers
+	// are being run for real.
+	//Cluster ClusterInterface = &impl{}
+
 	// Fake is the injection interface with which informers should register
 	// to make themselves available to the controller process when it is being
 	// unit tested.
@@ -141,4 +169,5 @@ type impl struct {
 	dynamicInformers  []DynamicInformerInjector
 	filteredInformers []FilteredInformersInjector
 	ducks             []DuckFactoryInjector
+	//clusterClients    []ClusterClientInjector
 }

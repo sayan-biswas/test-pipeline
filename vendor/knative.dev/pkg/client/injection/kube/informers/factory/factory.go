@@ -21,7 +21,7 @@ package factory
 import (
 	context "context"
 
-	informers "k8s.io/client-go/informers"
+	informers "github.com/kcp-dev/client-go/informers"
 	client "knative.dev/pkg/client/injection/kube/client"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
@@ -36,11 +36,11 @@ func init() {
 type Key struct{}
 
 func withInformerFactory(ctx context.Context) context.Context {
-	c := client.Get(ctx)
+	c := client.GetCluster(ctx)
 	opts := make([]informers.SharedInformerOption, 0, 1)
-	if injection.HasNamespaceScope(ctx) {
-		opts = append(opts, informers.WithNamespace(injection.GetNamespaceScope(ctx)))
-	}
+	//if injection.HasNamespaceScope(ctx) {
+	//	opts = append(opts, informers.WithNamespace(injection.GetNamespaceScope(ctx)))
+	//}
 	return context.WithValue(ctx, Key{},
 		informers.NewSharedInformerFactoryWithOptions(c, controller.GetResyncPeriod(ctx), opts...))
 }

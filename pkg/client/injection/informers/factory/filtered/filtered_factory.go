@@ -21,7 +21,7 @@ package filteredFactory
 import (
 	context "context"
 
-	externalversions "github.com/tektoncd/pipeline/pkg/client/informers/externalversions"
+	externalversions "github.com/tektoncd/pipeline/pkg/client/cluster/informers"
 	client "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controller "knative.dev/pkg/controller"
@@ -45,7 +45,7 @@ func WithSelectors(ctx context.Context, selector ...string) context.Context {
 }
 
 func withInformerFactory(ctx context.Context) context.Context {
-	c := client.Get(ctx)
+	c := client.GetCluster(ctx)
 	untyped := ctx.Value(LabelKey{})
 	if untyped == nil {
 		logging.FromContext(ctx).Panic(
@@ -54,9 +54,9 @@ func withInformerFactory(ctx context.Context) context.Context {
 	labelSelectors := untyped.([]string)
 	for _, selector := range labelSelectors {
 		opts := []externalversions.SharedInformerOption{}
-		if injection.HasNamespaceScope(ctx) {
-			opts = append(opts, externalversions.WithNamespace(injection.GetNamespaceScope(ctx)))
-		}
+		//if injection.HasNamespaceScope(ctx) {
+		//	opts = append(opts, externalversions.WithNamespace(injection.GetNamespaceScope(ctx)))
+		//}
 		opts = append(opts, externalversions.WithTweakListOptions(func(l *v1.ListOptions) {
 			l.LabelSelector = selector
 		}))

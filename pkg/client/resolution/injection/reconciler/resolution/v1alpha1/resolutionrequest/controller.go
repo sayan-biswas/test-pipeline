@@ -24,7 +24,7 @@ import (
 	reflect "reflect"
 	strings "strings"
 
-	versionedscheme "github.com/tektoncd/pipeline/pkg/client/resolution/clientset/versioned/scheme"
+	versionedscheme "github.com/tektoncd/pipeline/pkg/client/resolution/cluster/clientset/scheme"
 	client "github.com/tektoncd/pipeline/pkg/client/resolution/injection/client"
 	resolutionrequest "github.com/tektoncd/pipeline/pkg/client/resolution/injection/informers/resolution/v1alpha1/resolutionrequest"
 	zap "go.uber.org/zap"
@@ -59,7 +59,7 @@ func NewImpl(ctx context.Context, r Interface, optionsFns ...controller.OptionsF
 		logger.Fatal("Up to one options function is supported, found: ", len(optionsFns))
 	}
 
-	resolutionrequestInformer := resolutionrequest.Get(ctx)
+	resolutionrequestInformer := resolutionrequest.GetCluster(ctx)
 
 	lister := resolutionrequestInformer.Lister()
 
@@ -86,7 +86,7 @@ func NewImpl(ctx context.Context, r Interface, optionsFns ...controller.OptionsF
 				return nil
 			},
 		},
-		Client:        client.Get(ctx),
+		Client:        client.GetCluster(ctx),
 		Lister:        lister,
 		reconciler:    r,
 		finalizerName: defaultFinalizerName,

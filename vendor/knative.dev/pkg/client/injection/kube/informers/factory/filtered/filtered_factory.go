@@ -22,7 +22,7 @@ import (
 	context "context"
 
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	informers "k8s.io/client-go/informers"
+	informers "github.com/kcp-dev/client-go/informers"
 	client "knative.dev/pkg/client/injection/kube/client"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
@@ -45,7 +45,7 @@ func WithSelectors(ctx context.Context, selector ...string) context.Context {
 }
 
 func withInformerFactory(ctx context.Context) context.Context {
-	c := client.Get(ctx)
+	c := client.GetCluster(ctx)
 	untyped := ctx.Value(LabelKey{})
 	if untyped == nil {
 		logging.FromContext(ctx).Panic(
@@ -54,9 +54,9 @@ func withInformerFactory(ctx context.Context) context.Context {
 	labelSelectors := untyped.([]string)
 	for _, selector := range labelSelectors {
 		opts := []informers.SharedInformerOption{}
-		if injection.HasNamespaceScope(ctx) {
-			opts = append(opts, informers.WithNamespace(injection.GetNamespaceScope(ctx)))
-		}
+		//if injection.HasNamespaceScope(ctx) {
+		//	opts = append(opts, informers.WithNamespace(injection.GetNamespaceScope(ctx)))
+		//}
 		opts = append(opts, informers.WithTweakListOptions(func(l *v1.ListOptions) {
 			l.LabelSelector = selector
 		}))

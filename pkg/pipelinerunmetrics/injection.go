@@ -19,8 +19,8 @@ package pipelinerunmetrics
 import (
 	"context"
 
+	listers "github.com/tektoncd/pipeline/pkg/client/cluster/listers/tekton/v1beta1"
 	pipelineruninformer "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun"
-	listers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
 	"k8s.io/client-go/rest"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/injection"
@@ -67,14 +67,14 @@ func WithInformer(ctx context.Context) (context.Context, controller.Informer) {
 	return ctx, &recorderInformer{
 		ctx:     ctx,
 		metrics: Get(ctx),
-		lister:  pipelineruninformer.Get(ctx).Lister(),
+		lister:  pipelineruninformer.GetCluster(ctx).Lister(),
 	}
 }
 
 type recorderInformer struct {
 	ctx     context.Context
 	metrics *Recorder
-	lister  listers.PipelineRunLister
+	lister  listers.PipelineRunClusterLister
 }
 
 var _ controller.Informer = (*recorderInformer)(nil)

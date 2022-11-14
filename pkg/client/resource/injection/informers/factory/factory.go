@@ -21,7 +21,7 @@ package factory
 import (
 	context "context"
 
-	externalversions "github.com/tektoncd/pipeline/pkg/client/resource/informers/externalversions"
+	externalversions "github.com/tektoncd/pipeline/pkg/client/resource/cluster/informers"
 	client "github.com/tektoncd/pipeline/pkg/client/resource/injection/client"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
@@ -36,11 +36,11 @@ func init() {
 type Key struct{}
 
 func withInformerFactory(ctx context.Context) context.Context {
-	c := client.Get(ctx)
+	c := client.GetCluster(ctx)
 	opts := make([]externalversions.SharedInformerOption, 0, 1)
-	if injection.HasNamespaceScope(ctx) {
-		opts = append(opts, externalversions.WithNamespace(injection.GetNamespaceScope(ctx)))
-	}
+	//if injection.HasNamespaceScope(ctx) {
+	//	opts = append(opts, externalversions.WithNamespace(injection.GetNamespaceScope(ctx)))
+	//}
 	return context.WithValue(ctx, Key{},
 		externalversions.NewSharedInformerFactoryWithOptions(c, controller.GetResyncPeriod(ctx), opts...))
 }

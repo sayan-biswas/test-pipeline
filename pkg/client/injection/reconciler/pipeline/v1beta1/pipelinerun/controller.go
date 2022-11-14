@@ -24,7 +24,7 @@ import (
 	reflect "reflect"
 	strings "strings"
 
-	versionedscheme "github.com/tektoncd/pipeline/pkg/client/clientset/versioned/scheme"
+	versionedscheme "github.com/tektoncd/pipeline/pkg/client/cluster/clientset/scheme"
 	client "github.com/tektoncd/pipeline/pkg/client/injection/client"
 	pipelinerun "github.com/tektoncd/pipeline/pkg/client/injection/informers/pipeline/v1beta1/pipelinerun"
 	zap "go.uber.org/zap"
@@ -59,7 +59,7 @@ func NewImpl(ctx context.Context, r Interface, optionsFns ...controller.OptionsF
 		logger.Fatal("Up to one options function is supported, found: ", len(optionsFns))
 	}
 
-	pipelinerunInformer := pipelinerun.Get(ctx)
+	pipelinerunInformer := pipelinerun.GetCluster(ctx)
 
 	lister := pipelinerunInformer.Lister()
 
@@ -86,7 +86,7 @@ func NewImpl(ctx context.Context, r Interface, optionsFns ...controller.OptionsF
 				return nil
 			},
 		},
-		Client:        client.Get(ctx),
+		Client:        client.GetCluster(ctx),
 		Lister:        lister,
 		reconciler:    r,
 		finalizerName: defaultFinalizerName,

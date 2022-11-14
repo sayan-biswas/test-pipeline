@@ -25,7 +25,7 @@ import (
 
 	"github.com/tektoncd/pipeline/pkg/apis/config"
 	"github.com/tektoncd/pipeline/pkg/apis/pipeline/v1beta1"
-	listers "github.com/tektoncd/pipeline/pkg/client/listers/pipeline/v1beta1"
+	listers "github.com/tektoncd/pipeline/pkg/client/cluster/listers/tekton/v1beta1"
 	"go.opencensus.io/stats"
 	"go.opencensus.io/stats/view"
 	"go.opencensus.io/tag"
@@ -259,7 +259,7 @@ func (r *Recorder) DurationAndCount(pr *v1beta1.PipelineRun, beforeCondition *ap
 
 // RunningPipelineRuns logs the number of PipelineRuns running right now
 // returns an error if its failed to log the metrics
-func (r *Recorder) RunningPipelineRuns(lister listers.PipelineRunLister) error {
+func (r *Recorder) RunningPipelineRuns(lister listers.PipelineRunClusterLister) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -290,7 +290,7 @@ func (r *Recorder) RunningPipelineRuns(lister listers.PipelineRunLister) error {
 
 // ReportRunningPipelineRuns invokes RunningPipelineRuns on our configured PeriodSeconds
 // until the context is cancelled.
-func (r *Recorder) ReportRunningPipelineRuns(ctx context.Context, lister listers.PipelineRunLister) {
+func (r *Recorder) ReportRunningPipelineRuns(ctx context.Context, lister listers.PipelineRunClusterLister) {
 	logger := logging.FromContext(ctx)
 
 	for {

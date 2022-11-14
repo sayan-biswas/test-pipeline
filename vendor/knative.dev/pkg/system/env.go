@@ -27,6 +27,10 @@ const (
 	// ResourceLabelEnvKey is the environment variable that specifies the system resource
 	// label.
 	ResourceLabelEnvKey = "SYSTEM_RESOURCE_LABEL"
+	// WorkspaceEnvKey is the environment variable that specifies the system workspace.
+	WorkspaceEnvKey = "SYSTEM_WORKSPACE"
+	// WorkspaceEnvKey is the environment variable that specifies the system workspace.
+	APIExportEnvKey = "API_EXPORT"
 )
 
 // Namespace returns the name of the K8s namespace where our system components
@@ -59,4 +63,33 @@ import (
 // components source their configuration from.
 func ResourceLabel() string {
 	return os.Getenv(ResourceLabelEnvKey)
+}
+
+// Workspace returns the name of the KCP workspace where our system components run.
+func Workspace() string {
+	if ws := os.Getenv(WorkspaceEnvKey); ws != "" {
+		return ws
+	}
+
+	panic(fmt.Sprintf(`The environment variable %q is not set
+
+If this is a process running on Kubernetes, then it should be using the downward
+API to initialize this variable via:
+
+  env:
+  - name: %s
+    valueFrom:
+      fieldRef:
+        fieldPath: metadata.annotations['kcp.dev/cluster']
+
+`, WorkspaceEnvKey, WorkspaceEnvKey))
+}
+
+// APIExport returns the name of the KCP workspace where our system components run.
+func APIExport() string {
+	if ae := os.Getenv(APIExportEnvKey); ae != "" {
+		return ae
+	}
+
+	panic(fmt.Sprintf(`The environment variable %q is not set`, APIExportEnvKey))
 }
