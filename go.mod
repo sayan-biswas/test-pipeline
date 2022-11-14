@@ -19,7 +19,7 @@ require (
 	github.com/opencontainers/image-spec v1.0.3-0.20220114050600-8b9d41f48198
 	github.com/pkg/errors v0.9.1
 	github.com/tektoncd/plumbing v0.0.0-20220817140952-3da8ce01aeeb
-	go.opencensus.io v0.23.0
+	go.opencensus.io v0.24.0
 	go.uber.org/zap v1.23.0
 	golang.org/x/oauth2 v0.0.0-20220411215720-9780585627b5
 	gomodules.xyz/jsonpatch/v2 v2.2.0
@@ -147,7 +147,7 @@ require (
 	github.com/shurcooL/graphql v0.0.0-20181231061246-d48a9a75455f // indirect
 	github.com/sirupsen/logrus v1.8.1 // indirect
 	github.com/spf13/pflag v1.0.6-0.20210604193023-d5e0c0615ace // indirect
-	github.com/stretchr/testify v1.8.0 // indirect
+	github.com/stretchr/testify v1.8.1 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/automaxprocs v1.4.0 // indirect
